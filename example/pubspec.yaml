@@ -1,0 +1,26 @@
+name: sessionly_example
+description: >-
+  Demo + performance harness for the sessionly_flutter SDK. Wires SessionlyRoot,
+  SessionlyNavigatorObserver, and Sessionly.init across four real screens.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  sessionly_flutter:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

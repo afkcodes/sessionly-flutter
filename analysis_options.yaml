@@ -1,0 +1,14 @@
+# Rule 4.4: the `very_good_analysis` lint set. Zero analyzer issues in CI
+# (`flutter analyze --fatal-infos`).
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    # This package intentionally has no example app yet (scaffold-only), and
+    # the SDK is not published to pub.dev during development (publish_to: none).
+    public_member_api_docs: true

@@ -1,0 +1,45 @@
+{
+  "description": "web error/js_error with JsErrorProps (message hashed by default)",
+  "payload": {
+    "events": [
+      {
+        "anonymous_id": "anon_2yQb8Fk3Lp",
+        "ctx": {
+          "app_version": "1.4.0",
+          "browser": "chrome",
+          "browser_version": "125.0.6422.112",
+          "build": null,
+          "connection": "4g",
+          "device_class": "high",
+          "locale": "en-US",
+          "network": "wifi",
+          "os": "web",
+          "os_version": "125.0",
+          "screen_h": 1080,
+          "screen_w": 1920,
+          "viewport_h": 900,
+          "viewport_w": 1440
+        },
+        "event_id": "0190a1b2-c3d4-7e5f-8a0b-00000000002b",
+        "name": "js_error",
+        "props": {
+          "error_type": "TypeError",
+          "fatal": false,
+          "message_hash": "sha256:9f2c1a4be7d0",
+          "stack_digest": "d41d8cd98f00b204"
+        },
+        "screen": "/checkout",
+        "session_id": "0190a1b2-c3d4-7e5f-8a0b-0000000000aa",
+        "ts": "2026-07-18T10:30:59.821Z",
+        "type": "error",
+        "user_id": null
+      }
+    ],
+    "protocol": 1,
+    "sdk": {
+      "name": "sessionly-web",
+      "version": "1.0.0"
+    },
+    "sent_at": "2026-07-18T10:31:02.114Z"
+  }
+}

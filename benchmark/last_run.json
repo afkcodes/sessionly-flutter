@@ -1,0 +1,59 @@
+{
+  "schema": "footprint.bench.v1",
+  "generated_at": "2026-07-18T10:45:02.432758Z",
+  "platform": "linux Linux 7.1.3-2-cachyos #1 SMP PREEMPT_DYNAMIC Wed, 08 Jul 2026 18:34:01 +0000",
+  "dart_version": "3.11.5 (stable) (Wed Apr 15 00:36:32 2026 -0700) on \"linux_x64\"",
+  "results": [
+    {
+      "name": "capture_gate.enqueue",
+      "stats": {
+        "count": 100000,
+        "mean_ms": 0.0008536004400000294,
+        "p50_ms": 0.0007599999999999999,
+        "p99_ms": 0.001322,
+        "max_ms": 0.834065
+      },
+      "budget_ms": 1.0,
+      "budget_metric": "p99",
+      "note": "captureEvent(track) — id+ts stamp + O(1) ring add",
+      "passed": true
+    },
+    {
+      "name": "ring_buffer.add",
+      "stats": {
+        "count": 100000,
+        "mean_ms": 0.000047044230000013805,
+        "p50_ms": 0.000041,
+        "p99_ms": 0.00006599999999999999,
+        "max_ms": 0.094196
+      },
+      "note": "O(1) bounded add with drop-oldest eviction",
+      "passed": true
+    },
+    {
+      "name": "ring_buffer.drain",
+      "stats": {
+        "count": 1,
+        "mean_ms": 0.0000190425,
+        "p50_ms": 0.0000190425,
+        "p99_ms": 0.0000190425,
+        "max_ms": 0.0000190425
+      },
+      "note": "drain 2000 events; per-event cost",
+      "passed": true,
+      "events_per_sec": 52514113
+    },
+    {
+      "name": "uuid_v7.generate",
+      "stats": {
+        "count": 100000,
+        "mean_ms": 0.0005257159400000125,
+        "p50_ms": 0.000459,
+        "p99_ms": 0.0007859999999999999,
+        "max_ms": 1.375032
+      },
+      "note": "RFC 9562 UUIDv7 string",
+      "passed": true
+    }
+  ]
+}

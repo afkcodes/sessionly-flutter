@@ -1,0 +1,42 @@
+{
+  "description": "perf/http_slow with host/path (no query string), method, status, timings",
+  "payload": {
+    "events": [
+      {
+        "anonymous_id": "anon_2yQb8Fk3Lp",
+        "ctx": {
+          "app_version": "2.3.1",
+          "build": "412",
+          "device_class": "mid",
+          "locale": "en-IN",
+          "network": "wifi",
+          "os": "android",
+          "os_version": "14",
+          "screen_h": 915,
+          "screen_w": 412
+        },
+        "event_id": "0190a1b2-c3d4-7e5f-8a0b-00000000003e",
+        "name": "http_slow",
+        "props": {
+          "duration_ms": 4200,
+          "host": "api.example.com",
+          "method": "POST",
+          "path": "/v1/checkout/session",
+          "status": 200,
+          "threshold_ms": 3000
+        },
+        "screen": "CheckoutPage",
+        "session_id": "0190a1b2-c3d4-7e5f-8a0b-0000000000aa",
+        "ts": "2026-07-18T10:30:59.821Z",
+        "type": "perf",
+        "user_id": null
+      }
+    ],
+    "protocol": 1,
+    "sdk": {
+      "name": "sessionly-flutter",
+      "version": "0.3.0"
+    },
+    "sent_at": "2026-07-18T10:31:02.114Z"
+  }
+}

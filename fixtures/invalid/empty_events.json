@@ -1,0 +1,13 @@
+{
+  "description": "batch carries zero events (min 1)",
+  "expect_error_path": "events",
+  "payload": {
+    "events": [],
+    "protocol": 1,
+    "sdk": {
+      "name": "sessionly-flutter",
+      "version": "0.3.0"
+    },
+    "sent_at": "2026-07-18T10:31:02.114Z"
+  }
+}

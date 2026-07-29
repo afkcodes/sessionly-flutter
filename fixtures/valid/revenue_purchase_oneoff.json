@@ -1,0 +1,41 @@
+{
+  "description": "revenue/purchase one-off with full typed props (amount, currency, product_id)",
+  "payload": {
+    "events": [
+      {
+        "anonymous_id": "anon_2yQb8Fk3Lp",
+        "ctx": {
+          "app_version": "2.3.1",
+          "build": "412",
+          "device_class": "mid",
+          "locale": "en-IN",
+          "network": "wifi",
+          "os": "android",
+          "os_version": "14",
+          "screen_h": 915,
+          "screen_w": 412
+        },
+        "event_id": "0190a1b2-c3d4-7e5f-8a0b-000000000032",
+        "name": "purchase",
+        "props": {
+          "amount_minor": 4999,
+          "currency": "USD",
+          "product_id": "prod_pro_monthly",
+          "provider": "stripe",
+          "recurring": false
+        },
+        "screen": "CheckoutPage",
+        "session_id": "0190a1b2-c3d4-7e5f-8a0b-0000000000aa",
+        "ts": "2026-07-18T10:30:59.821Z",
+        "type": "revenue",
+        "user_id": null
+      }
+    ],
+    "protocol": 1,
+    "sdk": {
+      "name": "sessionly-flutter",
+      "version": "0.3.0"
+    },
+    "sent_at": "2026-07-18T10:31:02.114Z"
+  }
+}

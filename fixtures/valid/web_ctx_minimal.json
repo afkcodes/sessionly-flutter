@@ -1,0 +1,38 @@
+{
+  "description": "web event WITHOUT any additive optional ctx field — proves additivity (Rule 2.3)",
+  "payload": {
+    "events": [
+      {
+        "anonymous_id": "anon_2yQb8Fk3Lp",
+        "ctx": {
+          "app_version": "1.4.0",
+          "build": null,
+          "device_class": "high",
+          "locale": "en-US",
+          "network": "wifi",
+          "os": "web",
+          "os_version": "125.0",
+          "screen_h": 1080,
+          "screen_w": 1920
+        },
+        "event_id": "0190a1b2-c3d4-7e5f-8a0b-00000000002c",
+        "name": "screen_view",
+        "props": {
+          "path": "/",
+          "url": "https://shop.example.com/"
+        },
+        "screen": "/",
+        "session_id": "0190a1b2-c3d4-7e5f-8a0b-0000000000aa",
+        "ts": "2026-07-18T10:30:59.821Z",
+        "type": "auto",
+        "user_id": null
+      }
+    ],
+    "protocol": 1,
+    "sdk": {
+      "name": "sessionly-web",
+      "version": "1.0.0"
+    },
+    "sent_at": "2026-07-18T10:31:02.114Z"
+  }
+}
