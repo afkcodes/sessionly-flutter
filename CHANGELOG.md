@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+- Report the correct SDK version. `sdk.version` on every batch was a hand-kept
+  constant that had not been bumped, so 0.1.1–0.1.3 all reported `0.1.0-dev` and
+  the data could not tell which build a device ran. The constant now tracks the
+  package version, guarded by a test that fails if the two ever drift.
+
 ## 0.1.3
 
 - Make the `screen_view` dedup lossless. The 0.1.2 guard kept the first of two

@@ -16,7 +16,7 @@ import 'package:sessionly_flutter/src/protocol/envelope.dart';
 import 'package:sessionly_flutter/src/protocol/formats.dart';
 
 /// SDK semver reported in every batch's `sdk.version`.
-const String sessionlySdkVersion = '0.1.0-dev';
+const String sessionlySdkVersion = '0.1.4';
 
 /// Batches serialized events off the disk queue and uploads them.
 class Uploader {
