@@ -60,10 +60,16 @@ class CaptureGate {
   int _droppedTotal = 0;
   int _dedupedTotal = 0;
 
-  /// The last admitted `screen_view`'s screen + capture time, for same-screen
-  /// coalescing within [_screenViewDedupMs]. `null` screen never dedups.
+  /// The last admitted `screen_view`, for same-screen coalescing within
+  /// [_screenViewDedupMs]. The buffered record is held by reference so a later,
+  /// richer duplicate can ENRICH it in place rather than lose its props — the
+  /// observer's nav_type/previous_screen and the bare manual `Sessionly.screen()`
+  /// fire in either order, and we keep the union's best. Cleared on drain (the
+  /// record leaves the buffer). `null` screen never dedups.
   String? _lastScreenViewScreen;
   int _lastScreenViewAtMs = 0;
+  Map<String, Object?>? _lastScreenViewRecord;
+  int _lastScreenViewPropsLen = 0;
 
   /// Total capture calls admitted since construction. A debug/overlay
   /// affordance only (surfaced via `Sessionly.debugStats`); never on the wire.
@@ -89,9 +95,11 @@ class CaptureGate {
   /// Captures a `track`/`screen`/auto event. O(1): stamp then add.
   ///
   /// Consecutive `screen_view`s for the SAME screen within the dedup window
-  /// collapse to one (keep-first): a shell/tab route commonly fires both the
-  /// navigator observer and a manual `Sessionly.screen()` for one navigation,
-  /// and counting both doubles the metric.
+  /// collapse to one: a shell/tab route commonly fires both the navigator
+  /// observer and a manual `Sessionly.screen()` for one navigation, so counting
+  /// both doubles the metric. The survivor keeps the EARLIEST timestamp and the
+  /// RICHER props (whichever of the two carried more), so no nav_type /
+  /// previous_screen edge is lost regardless of which fired first.
   void captureEvent({
     required String type,
     required String name,
@@ -103,10 +111,15 @@ class CaptureGate {
       if (screen == _lastScreenViewScreen &&
           tsMs - _lastScreenViewAtMs <= _screenViewDedupMs) {
         _dedupedTotal++;
+        // Enrich the already-buffered view in place when this duplicate carries
+        // more props (adds a few uncounted bytes — negligible against the cap).
+        final buffered = _lastScreenViewRecord;
+        if (buffered != null && props.length > _lastScreenViewPropsLen) {
+          buffered[RecordKey.props] = props;
+          _lastScreenViewPropsLen = props.length;
+        }
         return;
       }
-      _lastScreenViewScreen = screen;
-      _lastScreenViewAtMs = tsMs;
     }
     final record = eventRecord(
       eventId: _uuid.generate(),
@@ -118,6 +131,12 @@ class CaptureGate {
     );
     _capturedTotal++;
     _buffer.add(record, estimateRecordBytes(name, props, screen));
+    if (name == _screenViewName && screen != null) {
+      _lastScreenViewScreen = screen;
+      _lastScreenViewAtMs = tsMs;
+      _lastScreenViewRecord = record;
+      _lastScreenViewPropsLen = props.length;
+    }
   }
 
   /// Captures an `identify(userId)`.
@@ -151,6 +170,10 @@ class CaptureGate {
         if (dropped > 0) droppedMetaRecord(dropped),
         ...records,
       ];
+      // The buffered screen_view just left the buffer — drop the enrich handle
+      // so a later duplicate can't mutate an already-shipped record (it still
+      // dedups by screen+time, keeping the count correct).
+      _lastScreenViewRecord = null;
       _sink(batch);
     } on Object catch (error) {
       _onError?.call(error);

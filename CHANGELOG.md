@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.3
+
+- Make the `screen_view` dedup lossless. The 0.1.2 guard kept the first of two
+  same-screen views and dropped the duplicate, which lost the navigator
+  observer's `nav_type`/`previous_screen` edge whenever the bare manual
+  `Sessionly.screen()` fired first. The survivor now keeps the earliest
+  timestamp and the richer props (the later, richer duplicate enriches the
+  buffered event in place), so no navigation edge is lost regardless of order.
+
 ## 0.1.2
 
 - Deduplicate double-fired `screen_view` events. A common shell/tab setup wires

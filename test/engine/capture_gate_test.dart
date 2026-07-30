@@ -116,21 +116,35 @@ void main() {
       );
     });
 
-    test(
-      'coalesces a same-screen screen_view within the window (keep-first)',
-      () {
-        // Observer + a manual Sessionly.screen(), ~1 frame apart, one nav.
-        view('/circle');
-        clock += 25;
-        view('/circle', props: const {'nav_type': 'push'});
-        gate.drainNow();
+    test('coalesces a same-screen screen_view, keeping the richer props', () {
+      // Bare manual Sessionly.screen() first, then the observer ~1 frame later.
+      view('/circle');
+      clock += 25;
+      view(
+        '/circle',
+        props: const {'nav_type': 'push', 'previous_screen': '/x'},
+      );
+      gate.drainNow();
 
-        expect(events(), hasLength(1));
-        expect(gate.dedupedTotal, 1);
-        // Keep-first: the earlier (empty-props) event is the one admitted.
-        expect(events().single[RecordKey.props], const <String, Object?>{});
-      },
-    );
+      expect(events(), hasLength(1));
+      expect(gate.dedupedTotal, 1);
+      // One event survives, enriched with the observer's edge props.
+      expect(events().single[RecordKey.props], {
+        'nav_type': 'push',
+        'previous_screen': '/x',
+      });
+    });
+
+    test('does not downgrade when the richer view fires first', () {
+      view('/circle', props: const {'nav_type': 'push'});
+      clock += 25;
+      view('/circle'); // bare manual, second
+      gate.drainNow();
+
+      expect(events(), hasLength(1));
+      expect(gate.dedupedTotal, 1);
+      expect(events().single[RecordKey.props], const {'nav_type': 'push'});
+    });
 
     test('keeps distinct screens and same-screen views past the window', () {
       view('/circle');

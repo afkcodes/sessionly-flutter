@@ -3,7 +3,7 @@ description: >-
   Sessionly analytics SDK for Flutter — wire protocol v1 models and contract
   conformance. The Dart side of the cross-language protocol defined in
   packages/core, validated against shared golden JSON fixtures.
-version: 0.1.2
+version: 0.1.3
 publish_to: none
 
 environment:
