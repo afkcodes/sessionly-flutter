@@ -27,27 +27,43 @@ class CaptureGate {
     required UuidV7Generator uuid,
     int Function()? nowMs,
     Duration drainInterval = const Duration(seconds: 1),
+    Duration screenViewDedupWindow = const Duration(milliseconds: 700),
     void Function(Object error)? onError,
   }) : _buffer = buffer,
        _sink = sink,
        _uuid = uuid,
        _nowMs = nowMs ?? _systemNowMs,
        _drainInterval = drainInterval,
+       _screenViewDedupMs = screenViewDedupWindow.inMilliseconds,
        _onError = onError;
 
   static int _systemNowMs() => DateTime.now().millisecondsSinceEpoch;
+
+  /// Governed name whose consecutive same-screen repeats are coalesced. A
+  /// common integration (a shell/tab route that fires the navigator observer AND
+  /// a manual `Sessionly.screen()`) emits two `screen_view`s ~1 frame apart for
+  /// one navigation; counting both doubles every screen view. Only this name is
+  /// deduped.
+  static const _screenViewName = 'screen_view';
 
   final RingBuffer<Map<String, Object?>> _buffer;
   final RecordSink _sink;
   final UuidV7Generator _uuid;
   final int Function() _nowMs;
   final Duration _drainInterval;
+  final int _screenViewDedupMs;
   final void Function(Object error)? _onError;
 
   Timer? _timer;
 
   int _capturedTotal = 0;
   int _droppedTotal = 0;
+  int _dedupedTotal = 0;
+
+  /// The last admitted `screen_view`'s screen + capture time, for same-screen
+  /// coalescing within [_screenViewDedupMs]. `null` screen never dedups.
+  String? _lastScreenViewScreen;
+  int _lastScreenViewAtMs = 0;
 
   /// Total capture calls admitted since construction. A debug/overlay
   /// affordance only (surfaced via `Sessionly.debugStats`); never on the wire.
@@ -58,6 +74,10 @@ class CaptureGate {
   /// dropped-delta is).
   int get droppedTotal => _droppedTotal;
 
+  /// Consecutive duplicate `screen_view`s suppressed since construction (debug/overlay
+  /// affordance only; never on the wire).
+  int get dedupedTotal => _dedupedTotal;
+
   /// Records currently buffered and awaiting the next drain.
   int get bufferedEvents => _buffer.length;
 
@@ -67,15 +87,30 @@ class CaptureGate {
   }
 
   /// Captures a `track`/`screen`/auto event. O(1): stamp then add.
+  ///
+  /// Consecutive `screen_view`s for the SAME screen within the dedup window
+  /// collapse to one (keep-first): a shell/tab route commonly fires both the
+  /// navigator observer and a manual `Sessionly.screen()` for one navigation,
+  /// and counting both doubles the metric.
   void captureEvent({
     required String type,
     required String name,
     required Map<String, Object?> props,
     String? screen,
   }) {
+    final tsMs = _nowMs();
+    if (name == _screenViewName && screen != null) {
+      if (screen == _lastScreenViewScreen &&
+          tsMs - _lastScreenViewAtMs <= _screenViewDedupMs) {
+        _dedupedTotal++;
+        return;
+      }
+      _lastScreenViewScreen = screen;
+      _lastScreenViewAtMs = tsMs;
+    }
     final record = eventRecord(
       eventId: _uuid.generate(),
-      tsMs: _nowMs(),
+      tsMs: tsMs,
       type: type,
       name: name,
       props: props,

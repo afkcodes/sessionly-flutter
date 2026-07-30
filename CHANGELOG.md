@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2
+
+- Deduplicate double-fired `screen_view` events. A common shell/tab setup wires
+  both the navigator observer and a manual `Sessionly.screen()` call; on a fresh
+  branch push both fire ~1 frame apart, double-counting the view. The capture
+  gate now coalesces consecutive same-screen `screen_view`s within a 700 ms
+  window (keep-first). Non-`screen_view` events and null screens are untouched.
+
 ## 0.1.1
 
 - Suppress frame-timing / ANR perf capture (`slow_frame_burst`, `frozen_frame`,

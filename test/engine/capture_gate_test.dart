@@ -78,4 +78,81 @@ void main() {
       expect(sunk, isEmpty);
     });
   });
+
+  group('CaptureGate screen_view dedup', () {
+    late List<Map<String, Object?>> sunk;
+    late int clock;
+    late CaptureGate gate;
+
+    // Local functions (not `gate.method`) so a call sequence needs no cascade.
+    void view(String screen, {Map<String, Object?> props = const {}}) =>
+        gate.captureEvent(
+          type: 'auto',
+          name: 'screen_view',
+          props: props,
+          screen: screen,
+        );
+    void emit(String name, {String? screen}) => gate.captureEvent(
+      type: 'auto',
+      name: name,
+      props: const {},
+      screen: screen,
+    );
+
+    List<Map<String, Object?>> events() =>
+        sunk.where((r) => r[RecordKey.kind] == RecordKind.event).toList();
+
+    setUp(() {
+      sunk = [];
+      clock = 1000;
+      gate = CaptureGate(
+        buffer: RingBuffer<Map<String, Object?>>(
+          maxEvents: 100,
+          maxBytes: 1 << 20,
+        ),
+        sink: sunk.addAll,
+        uuid: UuidV7Generator(random: Random(1), nowMs: () => 1000),
+        nowMs: () => clock,
+      );
+    });
+
+    test(
+      'coalesces a same-screen screen_view within the window (keep-first)',
+      () {
+        // Observer + a manual Sessionly.screen(), ~1 frame apart, one nav.
+        view('/circle');
+        clock += 25;
+        view('/circle', props: const {'nav_type': 'push'});
+        gate.drainNow();
+
+        expect(events(), hasLength(1));
+        expect(gate.dedupedTotal, 1);
+        // Keep-first: the earlier (empty-props) event is the one admitted.
+        expect(events().single[RecordKey.props], const <String, Object?>{});
+      },
+    );
+
+    test('keeps distinct screens and same-screen views past the window', () {
+      view('/circle');
+      clock += 25;
+      view('/learn');
+      clock += 800; // past the 700ms default window
+      view('/learn');
+      gate.drainNow();
+
+      expect(events(), hasLength(3));
+      expect(gate.dedupedTotal, 0);
+    });
+
+    test('never dedups non-screen_view events or null screens', () {
+      emit('tap', screen: '/circle');
+      emit('tap', screen: '/circle');
+      emit('screen_view');
+      emit('screen_view');
+      gate.drainNow();
+
+      expect(events(), hasLength(4));
+      expect(gate.dedupedTotal, 0);
+    });
+  });
 }
