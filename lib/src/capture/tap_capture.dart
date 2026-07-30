@@ -55,14 +55,23 @@ class TapTarget {
 
 /// Wrap your app in this at the install point: `SessionlyRoot(child: MyApp())`.
 class SessionlyRoot extends StatefulWidget {
-  /// Wraps [child]; [runtime] overrides the ambient runtime in tests.
-  const SessionlyRoot({required this.child, this.runtime, super.key});
+  /// Wraps [child]; [runtime]/[nowMs] override the ambient runtime and clock in
+  /// tests.
+  const SessionlyRoot({
+    required this.child,
+    this.runtime,
+    this.nowMs,
+    super.key,
+  });
 
   /// The app subtree to instrument.
   final Widget child;
 
   /// Test-only explicit runtime; app code leaves this null.
   final CaptureRuntime? runtime;
+
+  /// Test-only clock seam; app code leaves this null (wall clock).
+  final int Function()? nowMs;
 
   @override
   State<SessionlyRoot> createState() => _SessionlyRootState();
@@ -71,14 +80,24 @@ class SessionlyRoot extends StatefulWidget {
 class _SessionlyRootState extends State<SessionlyRoot> {
   final GlobalKey _childKey = GlobalKey();
   Offset? _pending;
+  int _pendingAtMs = 0;
   bool _scheduled = false;
 
   CaptureRuntime? get _runtime => widget.runtime ?? CaptureRuntime.current;
 
-  // Hot path (docs/05 budget < 0.5 ms): stash the point + arm one post-frame
-  // callback. No walk, no allocation beyond the Offset.
+  int _now() {
+    final clock = widget.nowMs;
+    return clock != null ? clock() : DateTime.now().millisecondsSinceEpoch;
+  }
+
+  // Hot path (docs/05 budget < 0.5 ms): stash the point + the tap time, then arm
+  // one post-frame callback. The TIMESTAMP is taken here, on pointer-up — the
+  // target-resolving walk runs post-frame, which is often a frame or more after
+  // the tap and after any navigation the tap triggered, so stamping ts there
+  // would order a tap after the screen_view it caused.
   void _onPointerUp(PointerUpEvent event) {
     _pending = event.position;
+    _pendingAtMs = _now();
     if (_scheduled) return;
     _scheduled = true;
     WidgetsBinding.instance.addPostFrameCallback(_resolvePending);
@@ -87,6 +106,7 @@ class _SessionlyRootState extends State<SessionlyRoot> {
   void _resolvePending(Duration _) {
     _scheduled = false;
     final position = _pending;
+    final atMs = _pendingAtMs;
     _pending = null;
     final runtime = _runtime;
     if (position == null || runtime == null) return;
@@ -112,6 +132,7 @@ class _SessionlyRootState extends State<SessionlyRoot> {
         name: 'tap',
         props: props,
         screen: runtime.tracker.current,
+        tsMs: atMs,
       );
       runtime.frustration?.onTap(
         targetId: target.identity,

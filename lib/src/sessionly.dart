@@ -440,5 +440,6 @@ class _DiscardSink implements CaptureSink {
     required String name,
     Map<String, Object?> props = const {},
     String? screen,
+    int? tsMs,
   }) {}
 }

@@ -105,8 +105,12 @@ class CaptureGate {
     required String name,
     required Map<String, Object?> props,
     String? screen,
+    int? atMs,
   }) {
-    final tsMs = _nowMs();
+    // [atMs] is the TRUE event time when the caller stamped it earlier than the
+    // emit (a tap stamps on pointer-up, then resolves its target post-frame —
+    // without this its ts lands after the navigation it triggered). Else now.
+    final tsMs = atMs ?? _nowMs();
     if (name == _screenViewName && screen != null) {
       if (screen == _lastScreenViewScreen &&
           tsMs - _lastScreenViewAtMs <= _screenViewDedupMs) {

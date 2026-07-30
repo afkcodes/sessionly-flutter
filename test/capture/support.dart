@@ -11,12 +11,15 @@ SessionlyConfig testConfig() => SessionlyConfig(
 
 /// One captured emit, flattened for easy assertions.
 class Captured {
-  Captured(this.type, this.name, this.props, this.screen);
+  Captured(this.type, this.name, this.props, this.screen, this.tsMs);
 
   final EventType type;
   final String name;
   final Map<String, Object?> props;
   final String? screen;
+
+  /// The explicit capture time the surface passed, or null for "now".
+  final int? tsMs;
 }
 
 /// A [CaptureSink] that records every emit in order.
@@ -31,5 +34,6 @@ class RecordingSink implements CaptureSink {
     required String name,
     Map<String, Object?> props = const {},
     String? screen,
-  }) => events.add(Captured(type, name, props, screen));
+    int? tsMs,
+  }) => events.add(Captured(type, name, props, screen, tsMs));
 }

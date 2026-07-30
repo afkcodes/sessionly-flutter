@@ -122,6 +122,37 @@ void main() {
     expect(tap.props.values.join(), isNot(contains('secret')));
   });
 
+  testWidgets('tap ts is stamped at pointer-up, not at post-frame resolve', (
+    tester,
+  ) async {
+    var clock = 1000;
+    await tester.pumpWidget(
+      SessionlyRoot(
+        runtime: runtime,
+        nowMs: () => clock,
+        child: MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: GestureDetector(
+                key: const Key('go'),
+                onTap: () {},
+                child: const SizedBox(width: 120, height: 48),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('go'))); // pointer-up at clock=1000
+    clock = 5000; // time passes (a navigation frame) before resolution runs
+    await tester.pump();
+
+    // The tap carries its POINTER-UP time, not the later resolve time — so it
+    // can't sort after the screen_view a tab tap triggers.
+    expect(sink.named('tap').single.tsMs, 1000);
+  });
+
   testWidgets('resolveTapTarget is bounded to the walk budget', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(

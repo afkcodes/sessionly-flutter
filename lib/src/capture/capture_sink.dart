@@ -11,12 +11,15 @@ import 'package:sessionly_flutter/src/protocol/vocabulary.dart';
 // ignore: one_member_abstracts
 abstract interface class CaptureSink {
   /// Records one event. [type]/[name] must be a governed vocabulary pair; the
-  /// call is O(1) and non-throwing.
+  /// call is O(1) and non-throwing. [tsMs] overrides the capture time for a
+  /// surface that stamped the true event moment earlier than this call (a tap
+  /// stamps on pointer-up, then resolves its target post-frame); omit for now.
   void emit({
     required EventType type,
     required String name,
     Map<String, Object?> props,
     String? screen,
+    int? tsMs,
   });
 }
 
@@ -39,6 +42,7 @@ class GateCaptureSink implements CaptureSink {
     required String name,
     Map<String, Object?> props = const {},
     String? screen,
+    int? tsMs,
   }) {
     try {
       _gate.captureEvent(
@@ -46,6 +50,7 @@ class GateCaptureSink implements CaptureSink {
         name: name,
         props: props,
         screen: screen,
+        atMs: tsMs,
       );
     } on Object catch (error) {
       _onError?.call(error);

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.5
+
+- Stamp `tap` timestamps at pointer-up instead of at post-frame resolution. The
+  tap surface resolved the tapped widget (and stamped the time) in a post-frame
+  callback that runs a frame or more later — and after any navigation the tap
+  triggered — so a tab tap could land ~150 ms after the `screen_view` it caused,
+  sorting a tap after its own navigation. The time is now taken on pointer-up.
+
 ## 0.1.4
 
 - Report the correct SDK version. `sdk.version` on every batch was a hand-kept
