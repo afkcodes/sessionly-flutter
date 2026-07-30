@@ -7,6 +7,8 @@
 /// time) so they work even when constructed before init completes.
 library;
 
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:sessionly_flutter/src/capture/capture_sink.dart';
 import 'package:sessionly_flutter/src/capture/current_screen.dart';
@@ -92,9 +94,15 @@ class CaptureRuntime {
     Future<void> Function()? flushHint,
     CurrentScreenTracker? tracker,
     bool spawnWatchdog = true,
+    bool? perfMetricsTrustworthy,
   }) async {
     final auto = config.autoCapture;
     final screen = tracker ?? CurrentScreenTracker();
+    // Frame-timing / ANR capture only runs where the numbers are real — never in
+    // a debug build or the iOS simulator (see [_perfMetricsTrustworthy]). The
+    // seam is overridable so tests can exercise both paths without depending on
+    // the harness's own build mode.
+    final trustPerf = perfMetricsTrustworthy ?? _perfMetricsTrustworthy();
 
     FrustrationDetectors? frustration;
     if (auto.taps || auto.screens) {
@@ -119,7 +127,7 @@ class CaptureRuntime {
           )
         : null;
 
-    final frame = auto.perf
+    final frame = auto.perf && trustPerf
         ? _guard(
             () => FrameTimingCapture(sink: sink, tracker: screen)..install(),
           )
@@ -137,7 +145,7 @@ class CaptureRuntime {
     }
 
     MainThreadWatchdog? watchdog;
-    if (auto.perf && spawnWatchdog) {
+    if (auto.perf && trustPerf && spawnWatchdog) {
       watchdog = await _guardAsync(() async {
         final dog = MainThreadWatchdog(sink: sink, tracker: screen);
         await dog.install();
@@ -175,6 +183,29 @@ class CaptureRuntime {
       scrollDepth: scrollDepth,
       inputs: inputs,
     );
+  }
+
+  /// Whether frame-timing / ANR metrics from this process can be trusted.
+  ///
+  /// They can't in a debug build (JIT, asserts, no AOT) or on the iOS simulator
+  /// (renders on the host CPU with no real GPU) — both report frame spans that
+  /// reflect the harness, not the app, so a jank threshold fires constantly and
+  /// floods `slow_frame_burst` / `frozen_frame` with noise. We suppress the perf
+  /// surfaces there rather than ship false signals (docs/05: prefer dropping data
+  /// over degrading it). Functional capture (screens, taps, lifecycle) is
+  /// unaffected, so a simulator run still verifies the pipeline.
+  static bool _perfMetricsTrustworthy() {
+    if (kDebugMode) return false;
+    try {
+      if (Platform.isIOS &&
+          Platform.environment.containsKey('SIMULATOR_UDID')) {
+        return false;
+      }
+    } on Object {
+      // Environment unreadable — assume real hardware rather than silently
+      // dropping perf capture on a genuine device.
+    }
+    return true;
   }
 
   static T? _guard<T>(T Function() body) {

@@ -50,6 +50,38 @@ void main() {
     await Sessionly.shutdown(); // cancel the drain timer within the test body
   });
 
+  testWidgets('perf on + trustworthy build installs frame capture', (
+    tester,
+  ) async {
+    await Sessionly.init(
+      config(AutoCapture.all),
+      host: _RecordingHost(),
+      spawnWatchdog: false,
+      perfMetricsTrustworthy: true,
+      drainInterval: const Duration(days: 1),
+    );
+    expect(CaptureRuntime.current!.frame, isNotNull);
+    await Sessionly.shutdown();
+  });
+
+  testWidgets('perf on but untrustworthy build (simulator/debug) suppresses '
+      'frame + ANR capture', (tester) async {
+    await Sessionly.init(
+      config(AutoCapture.all),
+      host: _RecordingHost(),
+      spawnWatchdog: false,
+      perfMetricsTrustworthy: false,
+      drainInterval: const Duration(days: 1),
+    );
+    // Perf surfaces are the only ones gated on build trust — the false
+    // frame/ANR numbers a simulator produces never reach the wire.
+    expect(CaptureRuntime.current!.frame, isNull);
+    expect(CaptureRuntime.current!.watchdog, isNull);
+    // Functional capture is unaffected: a simulator run still verifies it.
+    expect(CaptureRuntime.current!.lifecycle, isNotNull);
+    await Sessionly.shutdown();
+  });
+
   testWidgets('AutoCapture.none installs no surfaces', (tester) async {
     final host = _RecordingHost();
     await Sessionly.init(

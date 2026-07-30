@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+- Suppress frame-timing / ANR perf capture (`slow_frame_burst`, `frozen_frame`,
+  main-thread watchdog) in debug builds and on the iOS simulator, where frame
+  spans reflect the JIT/host-rendered harness rather than the app and would
+  otherwise flood the perf signal. Functional capture (screens, taps,
+  lifecycle) is unchanged, so a simulator run still verifies the pipeline.
+
 ## 0.1.0-dev
 
 - Initial package scaffold.

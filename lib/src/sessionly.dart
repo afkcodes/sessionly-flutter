@@ -111,6 +111,7 @@ abstract final class Sessionly {
     Duration? drainInterval,
     bool? installAutoCapture,
     bool spawnWatchdog = true,
+    bool? perfMetricsTrustworthy,
   }) async {
     if (_initialized) return;
     _initialized = true;
@@ -140,6 +141,7 @@ abstract final class Sessionly {
       nowMs: nowMs,
       installAutoCapture: installAutoCapture,
       spawnWatchdog: spawnWatchdog,
+      perfMetricsTrustworthy: perfMetricsTrustworthy,
     );
     await _ready;
   }
@@ -152,6 +154,7 @@ abstract final class Sessionly {
     int Function()? nowMs,
     bool? installAutoCapture,
     bool spawnWatchdog = true,
+    bool? perfMetricsTrustworthy,
   }) async {
     // Master kill switch (docs/05, config.enabled): when off, the SDK installs
     // no surfaces and spawns no engine isolate, so it adds zero main-thread
@@ -183,6 +186,7 @@ abstract final class Sessionly {
           nowMs: nowMs,
           flushHint: flush,
           spawnWatchdog: spawnWatchdog,
+          perfMetricsTrustworthy: perfMetricsTrustworthy,
         );
       } on Object {
         _internalErrors++;
