@@ -91,8 +91,16 @@ void main() {
   });
 
   group('dead_tap', () {
-    test('non-interactive tap with no nav within window fires dead_tap', () {
+    test('a single non-interactive tap does NOT arm dead_tap', () {
+      // Reading, a background tap, an incidental touch: not frustration.
       build().onTap(targetId: 'Text/label', interactive: false);
+      expect(lastDeadTimer, isNull);
+    });
+
+    test('a RETRIED non-interactive tap on the same target fires dead_tap', () {
+      final d = build()..onTap(targetId: 'Text/label', interactive: false);
+      now += 500; // within deadTapRetryMs (2500)
+      d.onTap(targetId: 'Text/label', interactive: false); // retry → arms
       expect(lastDeadTimer, isNotNull);
       lastDeadTimer!.fire();
       final dead = sink.named('dead_tap').toList();
@@ -100,13 +108,32 @@ void main() {
       expect(dead.single.props['target'], 'Text/label');
     });
 
-    test('interactive tap never arms a dead_tap', () {
-      build().onTap(targetId: 'Button/go', interactive: true);
+    test('a second tap after the retry window does not arm', () {
+      final d = build()..onTap(targetId: 'Text/label', interactive: false);
+      now += 3000; // > deadTapRetryMs
+      d.onTap(targetId: 'Text/label', interactive: false);
+      expect(lastDeadTimer, isNull);
+    });
+
+    test('two DIFFERENT non-interactive targets do not count as a retry', () {
+      final d = build()..onTap(targetId: 'Text/a', interactive: false);
+      now += 300;
+      d.onTap(targetId: 'Text/b', interactive: false);
+      expect(lastDeadTimer, isNull);
+    });
+
+    test('interactive taps never arm a dead_tap', () {
+      build()
+        ..onTap(targetId: 'Button/go', interactive: true)
+        ..onTap(targetId: 'Button/go', interactive: true);
       expect(lastDeadTimer, isNull);
     });
 
     test('dead_tap carries the tap coordinates', () {
-      build().onTap(targetId: 'Text/label', interactive: false, x: 0.1, y: 0.2);
+      final d = build()
+        ..onTap(targetId: 'Text/label', interactive: false, x: 0.1, y: 0.2);
+      now += 300;
+      d.onTap(targetId: 'Text/label', interactive: false, x: 0.1, y: 0.2);
       lastDeadTimer!.fire();
       final dead = sink.named('dead_tap').single;
       expect(dead.props['x'], 0.1);
@@ -114,8 +141,10 @@ void main() {
     });
 
     test('a navigation before the window cancels the dead_tap', () {
-      build()
-        ..onTap(targetId: 'Text/label', interactive: false)
+      final d = build()..onTap(targetId: 'Text/label', interactive: false);
+      now += 300;
+      d
+        ..onTap(targetId: 'Text/label', interactive: false) // retry → arms
         ..onScreen('Home', 'Details'); // nav happened → cancel
       lastDeadTimer!.fire();
       expect(sink.named('dead_tap'), isEmpty);

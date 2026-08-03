@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.6
+
+- Stop counting scrolls/drags as taps. Tap capture fired on every pointer-up
+  with no movement check, so the end of every scroll was recorded as a `tap` on
+  whatever content was under the finger — flooding `tap` and `dead_tap` on
+  scrollable screens. A pointer-up that moved past the touch slop (18px) is now
+  ignored.
+- Require a retry for `dead_tap`. It previously armed on any non-interactive tap
+  that didn't navigate, so ordinary reading/background taps counted as
+  frustration. Now only a second tap on the same non-interactive target within a
+  window (a genuine "I tapped this, nothing happened, so I tapped again") fires
+  it.
+
 ## 0.1.5
 
 - Stamp `tap` timestamps at pointer-up instead of at post-frame resolution. The

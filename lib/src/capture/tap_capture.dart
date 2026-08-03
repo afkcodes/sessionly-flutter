@@ -19,6 +19,10 @@ const int kTapWalkBudget = 25;
 /// Safety cap on the hit-path descent to the tapped leaf.
 const int _kMaxDescent = 512;
 
+/// Max down→up displacement (logical px) still counted as a tap; past it the
+/// gesture is a drag/scroll, not a tap. Matches Flutter's `kTouchSlop` (18).
+const double _kTapSlopPx = 18;
+
 /// The stable identity of a tapped widget. Carries no user content.
 class TapTarget {
   /// Creates a resolved target.
@@ -83,6 +87,13 @@ class _SessionlyRootState extends State<SessionlyRoot> {
   int _pendingAtMs = 0;
   bool _scheduled = false;
 
+  // Pointer-down positions (per pointer id), so a drag/scroll — pointer moved
+  // past the slop between down and up — is NOT recorded as a tap. Every scroll
+  // ends in a pointer-up; counting those as taps floods `tap` and (via
+  // non-interactive targets) `dead_tap` on scrollable screens. Bounded: entries
+  // are removed on up/cancel.
+  final Map<int, Offset> _downPositions = <int, Offset>{};
+
   CaptureRuntime? get _runtime => widget.runtime ?? CaptureRuntime.current;
 
   int _now() {
@@ -90,12 +101,24 @@ class _SessionlyRootState extends State<SessionlyRoot> {
     return clock != null ? clock() : DateTime.now().millisecondsSinceEpoch;
   }
 
-  // Hot path (docs/05 budget < 0.5 ms): stash the point + the tap time, then arm
-  // one post-frame callback. The TIMESTAMP is taken here, on pointer-up — the
-  // target-resolving walk runs post-frame, which is often a frame or more after
-  // the tap and after any navigation the tap triggered, so stamping ts there
-  // would order a tap after the screen_view it caused.
+  void _onPointerDown(PointerDownEvent event) {
+    _downPositions[event.pointer] = event.position;
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    _downPositions.remove(event.pointer);
+  }
+
+  // Hot path (docs/05 budget < 0.5 ms): reject drags, then stash the point + the
+  // tap time and arm one post-frame callback. The TIMESTAMP is taken here, on
+  // pointer-up: the identity walk runs post-frame, a frame or more after the
+  // tap and after any navigation it triggered, so stamping ts there would
+  // order a tap after the screen_view it caused.
   void _onPointerUp(PointerUpEvent event) {
+    final down = _downPositions.remove(event.pointer);
+    // Moved past the slop → a drag/scroll, not a tap. A missing down is an anomaly
+    // (down consumed elsewhere) — record rather than silently drop a real tap.
+    if (down != null && (event.position - down).distance > _kTapSlopPx) return;
     _pending = event.position;
     _pendingAtMs = _now();
     if (_scheduled) return;
@@ -182,7 +205,9 @@ class _SessionlyRootState extends State<SessionlyRoot> {
   Widget build(BuildContext context) {
     return Listener(
       behavior: HitTestBehavior.translucent,
+      onPointerDown: _onPointerDown,
       onPointerUp: _onPointerUp,
+      onPointerCancel: _onPointerCancel,
       child: NotificationListener<ScrollNotification>(
         onNotification: _onScroll,
         child: KeyedSubtree(key: _childKey, child: widget.child),

@@ -153,6 +153,36 @@ void main() {
     expect(sink.named('tap').single.tsMs, 1000);
   });
 
+  testWidgets('a drag/scroll past the touch slop is NOT recorded as a tap', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      SessionlyRoot(
+        runtime: runtime,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Center(child: SizedBox(width: 300, height: 300)),
+          ),
+        ),
+      ),
+    );
+
+    // A stationary tap IS recorded.
+    await tester.tap(find.byType(SizedBox));
+    await tester.pump();
+    expect(sink.named('tap'), hasLength(1));
+
+    // A drag (well past the 18px slop) is NOT: a scroll looks like this, and it
+    // used to flood tap + dead_tap on scrollable screens.
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(SizedBox)),
+    );
+    await gesture.moveBy(const Offset(120, 0));
+    await gesture.up();
+    await tester.pump();
+    expect(sink.named('tap'), hasLength(1)); // still just the one from the tap
+  });
+
   testWidgets('resolveTapTarget is bounded to the walk budget', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(

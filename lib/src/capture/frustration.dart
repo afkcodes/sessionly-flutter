@@ -34,6 +34,7 @@ class FrustrationDetectors {
     this.rageMinTaps = 3,
     this.rageCooldownMs = 2000,
     this.deadTapWindowMs = 400,
+    this.deadTapRetryMs = 2500,
     this.navThrashWindowMs = 5000,
     Timer Function(Duration, void Function())? scheduleDeadCheck,
   }) : _sink = sink,
@@ -60,6 +61,10 @@ class FrustrationDetectors {
   /// Grace period (ms) a non-interactive tap waits for a nav before dead_tap.
   final int deadTapWindowMs;
 
+  /// Window (ms) within which a SECOND tap on the same non-interactive target
+  /// counts as a retry — only a retry arms dead_tap (a lone tap does not).
+  final int deadTapRetryMs;
+
   /// Window (ms) an A→B→A→B route oscillation must fall inside for nav_thrash.
   final int navThrashWindowMs;
 
@@ -69,6 +74,10 @@ class FrustrationDetectors {
   final Map<String, int> _rageCooldownUntil = <String, int>{};
 
   Timer? _deadTimer;
+
+  // Last non-interactive tap target + time, for the retry check below.
+  String? _lastDeadTarget;
+  int _lastDeadAtMs = 0;
 
   // Last four route names + their times, for the oscillation check.
   final Queue<String> _navNames = Queue<String>();
@@ -86,7 +95,20 @@ class FrustrationDetectors {
   }) {
     final now = _nowMs();
     _recordRage(targetId, now, x, y);
-    if (!interactive) _armDeadTap(targetId, x, y);
+    if (!interactive) _considerDeadTap(targetId, now, x, y);
+  }
+
+  // A single tap on non-interactive content is normal (reading, a background,
+  // a resting finger), not frustration. Only a RETRY -- a second tap on the
+  // same target within [deadTapRetryMs] -- signals "I tapped this, nothing
+  // happened, so I tapped again", and arms the nav-grace timer; a first tap
+  // just records the target. Scrolls never reach here (dropped as drags).
+  void _considerDeadTap(String targetId, int now, double? x, double? y) {
+    final isRetry =
+        targetId == _lastDeadTarget && now - _lastDeadAtMs <= deadTapRetryMs;
+    _lastDeadTarget = targetId;
+    _lastDeadAtMs = now;
+    if (isRetry) _armDeadTap(targetId, x, y);
   }
 
   void _recordRage(String targetId, int now, double? x, double? y) {
