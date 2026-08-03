@@ -33,13 +33,20 @@ class _FrameWindow {
 class FrameTimingCapture {
   /// Wires to [sink]/[tracker]. Thresholds are overridable for tests; [window]
   /// is the aggregation cadence and [schedule] a timer seam.
+  ///
+  /// Defaults target USER-PERCEPTIBLE sustained jank, not every frame that
+  /// grazes its budget. `jankyThresholdMs = 32` counts only frames that dropped
+  /// at least a full 60Hz frame (more at 90/120Hz); a 16ms bar flags on-budget
+  /// frames and fired constantly on mid-range Android. `burstMinFrames = 6`
+  /// requires a real cluster of dropped frames before calling a stutter, so a
+  /// couple of incidental slow frames stay quiet.
   FrameTimingCapture({
     required CaptureSink sink,
     required CurrentScreenTracker tracker,
     Duration window = const Duration(seconds: 5),
-    int jankyThresholdMs = 16,
+    int jankyThresholdMs = 32,
     int frozenThresholdMs = 700,
-    int burstMinFrames = 3,
+    int burstMinFrames = 6,
     Timer Function(Duration, void Function(Timer))? schedule,
   }) : _sink = sink,
        _tracker = tracker,

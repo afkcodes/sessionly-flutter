@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7
+
+- Make `slow_frame_burst` reflect real, user-perceptible jank. The jank bar was
+  16ms — the 60Hz frame budget itself — so on-budget frames counted as janky and
+  a burst fired at just 3 of them in 5s, firing constantly on mid-range Android.
+  A frame now counts only past 32ms (it dropped at least a full 60Hz frame), and
+  a burst needs 6 such frames in the window. `frozen_frame` (700ms) is unchanged.
+
 ## 0.1.6
 
 - Stop counting scrolls/drags as taps. Tap capture fired on every pointer-up
